@@ -1,13 +1,13 @@
-from playwright.sync_api import sync_playwright
+from board import Board
 
 
 def main():
-    with sync_playwright() as p:
-        browser = p.webkit.launch()
-        page = browser.new_page()
-        page.goto("https://playwright.dev/")
-        page.screenshot(path="example.png")
-        browser.close()
+    board = Board(headless=False)
+
+    while True:
+        word = input()
+        board.guess(word)
+        print(board)
 
 
 if __name__ == "__main__":

@@ -6,3 +6,5 @@ uv.lock
 
 # Ruff stuff:
 .ruff_cache/
+
+__pycache__/
