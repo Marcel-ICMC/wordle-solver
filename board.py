@@ -1,5 +1,8 @@
 from playwright.sync_api import sync_playwright
 
+from exceptions import InvalidWordError, LengthWordlError, NotAlphaWordError
+from utils import strip_accents
+
 
 class Board:
     def __init__(self, headless=True):
@@ -17,31 +20,25 @@ class Board:
         self.result = 0
 
     def guess(self, word):
-        if self.result != 0:
-            return "Lost"
-
         if len(word) != 5:
-            return "Error"
+            raise LengthWordlError(f"Word should be exactly 5 characters, not {word}")
 
         if not word.isalpha():
-            return "Error"
+            raise NotAlphaWordError(
+                f"Word should contain only alphabetical characters, not {word}"
+            )
 
-        for letter in word.lower():
-            self.page.click(f"[id='kbd_{letter}']")
-
-        self.page.get_by_role("button", name="ENTER").click()
+        self._input_submit_guess(strip_accents(word))
+        self._check_result()
+        self._update_result()
 
         self.guesses.append(word)
-        self._update_result()
         self.word_index += 1
 
         return self.result
 
     def _update_result(self):
-        word_locator = self.page.locator(
-            f"[id='board0'] [termo-row='{self.word_index}']"
-        )
-
+        word_locator = self.page.locator(f"#board0 [termo-row='{self.word_index}']")
         word_result = []
         for l in range(5):
             letter = (
@@ -57,3 +54,33 @@ class Board:
             self.result = 1
         if len(self.results) == 6:
             self.result = -1
+
+    def _check_result(self):
+        # Waits for answer animation to fisish
+        self.page.wait_for_selector(
+            f"#board0 [termo-row='{self.word_index}'] [termo-pos='4']:not(.empty)",
+            timeout=10000,
+        )
+
+        try:
+            self._error_notification()
+        except InvalidWordError:
+            print("Invalid word")
+            self._clean_guess()
+
+    # Checks for if an error shows up on screen
+    def _error_notification(self):
+        notify = self.page.locator("wc-notify #msg[style*='normal']")
+        if notify.is_visible():
+            message = self.page.locator("wc-notify").inner_text()
+            raise InvalidWordError(f"Got invalid word error message: {message}")
+
+    def _input_submit_guess(self, word):
+        for letter in word.lower():
+            self.page.click(f"#kbd_{letter}")
+
+        self.page.get_by_role("button", name="ENTER").click()
+
+    def _clean_guess(self):
+        for _ in range(5):
+            self.page.click(f"#kbd_backspace")
