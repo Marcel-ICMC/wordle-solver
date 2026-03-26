@@ -1,25 +1,47 @@
-from playwright.sync_api import sync_playwright
+from typing import Any
+from typing_extensions import Self
+import unicodedata
 
+from board_browser import BoardBrowser
 from exceptions import InvalidWordError, LengthWordlError, NotAlphaWordError
-from utils import strip_accents
 
 
 class Board:
-    def __init__(self, headless=True):
-        playwright = sync_playwright().start()
-        browser = playwright.chromium.launch(headless=headless)
-        context = browser.new_context()
+    def __init__(self, headless: bool = True):
+        self._browser = BoardBrowser(headless)
+        self.guesses: list[str] = []
+        self.results: list[list[str]] = []
+        self.result: int = 0
+        self.word_index: int = 0
 
-        self.page = context.new_page()
-        self.page.goto("https://term.ooo/")
-        self.page.locator("#all").click()  # click away to ignore tutorial
+    def __enter__(self) -> Self:
+        return self
 
-        self.word_index = 0
-        self.guesses = []
-        self.results = []
-        self.result = 0
+    def __exit__(self, *args: list[Any]) -> None:
+        self.close()
+        return None
 
-    def guess(self, word):
+    def close(self) -> None:
+        self._browser.close()
+
+    def guess(self, word: str) -> int:
+        self._validates_word(word)
+
+        try:
+            self._browser.input_submit_guess(self._strip_accents(word))
+            self._browser.check_result(self.word_index)
+        except InvalidWordError:
+            print("Invalid word")
+            self._browser.clean_guess()
+
+        self._update_result()
+
+        self.guesses.append(word)
+        self.word_index += 1
+
+        return self.result
+
+    def _validates_word(self, word: str) -> None:
         if len(word) != 5:
             raise LengthWordlError(f"Word should be exactly 5 characters, not {word}")
 
@@ -28,59 +50,28 @@ class Board:
                 f"Word should contain only alphabetical characters, not {word}"
             )
 
-        self._input_submit_guess(strip_accents(word))
-        self._check_result()
-        self._update_result()
-
-        self.guesses.append(word)
-        self.word_index += 1
-
-        return self.result
-
-    def _update_result(self):
-        word_locator = self.page.locator(f"#board0 [termo-row='{self.word_index}']")
-        word_result = []
-        for l in range(5):
-            letter = (
-                word_locator.locator(f"[termo-pos='{l}']")
-                .get_attribute("class")
-                .split()[1]
-            )
-            word_result.append(letter)
-
+    def _update_result(self) -> None:
+        row_result = self._browser.fetch_row_result(self.word_index)
+        word_result = self._parse_row_result(row_result)
         self.results.append(word_result)
+        self.result = self._check_win()
 
+    def _parse_row_result(self, row_result: str) -> list[str]:
+        return [c.split()[1] for c in row_result]
+
+    def _check_win(self) -> int:
         if all(r == "right" for r in self.results[-1]):
-            self.result = 1
+            return 1
         if len(self.results) == 6:
-            self.result = -1
+            return -1
+        return 0
 
-    def _check_result(self):
-        # Waits for answer animation to fisish
-        self.page.wait_for_selector(
-            f"#board0 [termo-row='{self.word_index}'] [termo-pos='4']:not(.empty)",
-            timeout=10000,
+    @staticmethod
+    def _strip_accents(text: str) -> str:
+        return "".join(
+            c
+            for c in unicodedata.normalize("NFD", text)
+            # "Mn" means Nonspacing_Mark
+            # Check https://www.unicode.org/reports/tr44/tr44-34.html#General_Category_Values
+            if unicodedata.category(c) != "Mn"
         )
-
-        try:
-            self._error_notification()
-        except InvalidWordError:
-            print("Invalid word")
-            self._clean_guess()
-
-    # Checks for if an error shows up on screen
-    def _error_notification(self):
-        notify = self.page.locator("wc-notify #msg[style*='normal']")
-        if notify.is_visible():
-            message = self.page.locator("wc-notify").inner_text()
-            raise InvalidWordError(f"Got invalid word error message: {message}")
-
-    def _input_submit_guess(self, word):
-        for letter in word.lower():
-            self.page.click(f"#kbd_{letter}")
-
-        self.page.get_by_role("button", name="ENTER").click()
-
-    def _clean_guess(self):
-        for _ in range(5):
-            self.page.click(f"#kbd_backspace")

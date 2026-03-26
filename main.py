@@ -1,7 +1,7 @@
 from board import Board
 
 
-def main():
+def main() -> None:
     board = Board(headless=False)
 
     while True:
