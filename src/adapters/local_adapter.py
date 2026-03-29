@@ -2,8 +2,8 @@ from typing import Any, Self
 
 
 class LocalAdapter:
-    def __init__(self, correct_word: str) -> None:
-        self._correct_word = correct_word
+    def __init__(self, answer: str) -> None:
+        self._answer = answer
         self._guesses: list[str] = []
 
     def __enter__(self) -> Self:
@@ -18,7 +18,7 @@ class LocalAdapter:
         self._guesses.append(word)
 
     async def check_result(self, word_index: int) -> None:
-        self._guesses[-1] == self._correct_word
+        self._guesses[-1] == self._answer
 
     async def clean_guess(self) -> None: ...
 
@@ -28,8 +28,8 @@ class LocalAdapter:
         ]
 
     def match_letter(self, word: str, index: int) -> str:
-        if self._correct_word[index] == word[index]:
+        if self._answer[index] == word[index]:
             return "right"
-        if word[index] in self._correct_word:
+        if word[index] in self._answer:
             return "place"
         return "wrong"

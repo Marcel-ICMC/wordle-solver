@@ -1,8 +1,8 @@
 import unicodedata
 from typing import Any, Self
 
+from adapters import GameAdapter
 from exceptions import InvalidWordError, LengthWordlError, NotAlphaWordError
-from game_adapter import GameAdapter
 
 
 class Game:
