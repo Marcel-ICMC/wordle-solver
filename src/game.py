@@ -2,12 +2,12 @@ import unicodedata
 from typing import Any, Self
 
 from adapters import GameAdapter
-from exceptions import InvalidWordError, LengthWordlError, NotAlphaWordError
+from exceptions import InvalidWordError, LengthWordError, NotAlphaWordError
 
 
 class Game:
-    def __init__(self, browser: GameAdapter):
-        self._browser = browser
+    def __init__(self, game_adapter: GameAdapter):
+        self._game_adapter = game_adapter
         self.guesses: list[str] = []
         self.results: list[list[str]] = []
         self.result: int = 0
@@ -21,14 +21,14 @@ class Game:
         return None
 
     async def close(self) -> None:
-        await self._browser.close()
+        await self._game_adapter.close()
 
     async def guess(self, word: str) -> int:
         self._validates_word(word)
 
         try:
-            await self._browser.input_submit_guess(self._strip_accents(word))
-            await self._browser.check_result(self.word_index)
+            await self._game_adapter.input_submit_guess(self._strip_accents(word))
+            await self._game_adapter.check_result(self.word_index)
         except InvalidWordError:
             print("Invalid word")
 
@@ -41,7 +41,7 @@ class Game:
 
     def _validates_word(self, word: str) -> None:
         if len(word) != 5:
-            raise LengthWordlError(f"Word should be exactly 5 characters, not {word}")
+            raise LengthWordError(f"Word should be exactly 5 characters, not {word}")
 
         if not word.isalpha():
             raise NotAlphaWordError(
@@ -49,7 +49,7 @@ class Game:
             )
 
     async def _update_result(self) -> None:
-        word_result = await self._browser.fetch_row_result(self.word_index)
+        word_result = await self._game_adapter.fetch_row_result(self.word_index)
         self.results.append(word_result)
         self.result = self._check_win()
 

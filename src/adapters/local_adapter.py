@@ -18,7 +18,7 @@ class LocalAdapter:
         self._guesses.append(word)
 
     async def check_result(self, word_index: int) -> None:
-        self._guesses[-1] == self._answer
+        self._guesses[word_index] == self._answer
 
     async def clean_guess(self) -> None: ...
 

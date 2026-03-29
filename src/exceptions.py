@@ -2,7 +2,7 @@ class InvalidWordError(Exception):
     pass
 
 
-class LengthWordlError(Exception):
+class LengthWordError(Exception):
     pass
 
 
