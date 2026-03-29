@@ -1,4 +1,3 @@
-# tests/unit/test_local_adapter.py
 import pytest
 
 from adapters import LocalAdapter
@@ -18,6 +17,14 @@ async def test_correct_letter_wrong_position() -> None:
     await adapter.input_submit_guess("rroca")  # r and a are in wrong positions
     result = await adapter.fetch_row_result(0)
     assert result[0] == "place"
+
+
+@pytest.mark.asyncio
+async def test_correct_double_letter_position() -> None:
+    adapter = LocalAdapter(answer="carro")
+    await adapter.input_submit_guess("raros")
+    result = await adapter.fetch_row_result(0)
+    assert result == ["place", "right", "right", "place", "wrong"]
 
 
 @pytest.mark.asyncio
