@@ -1,4 +1,4 @@
-from board import Board
+from src.board import Board
 
 
 def main() -> None:

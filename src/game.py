@@ -1,40 +1,39 @@
-from typing import Any
-from typing_extensions import Self
 import unicodedata
+from typing import Any, Self
 
-from board_browser import BoardBrowser
 from exceptions import InvalidWordError, LengthWordlError, NotAlphaWordError
+from game_adapter import GameAdapter
 
 
-class Board:
-    def __init__(self, headless: bool = True):
-        self._browser = BoardBrowser(headless)
+class Game:
+    def __init__(self, browser: GameAdapter):
+        self._browser = browser
         self.guesses: list[str] = []
         self.results: list[list[str]] = []
         self.result: int = 0
         self.word_index: int = 0
 
-    def __enter__(self) -> Self:
+    def __aenter__(self) -> Self:
         return self
 
-    def __exit__(self, *args: list[Any]) -> None:
-        self.close()
+    async def __aexit__(self, *args: list[Any]) -> None:
+        await self.close()
         return None
 
-    def close(self) -> None:
-        self._browser.close()
+    async def close(self) -> None:
+        await self._browser.close()
 
-    def guess(self, word: str) -> int:
+    async def guess(self, word: str) -> int:
         self._validates_word(word)
 
         try:
-            self._browser.input_submit_guess(self._strip_accents(word))
-            self._browser.check_result(self.word_index)
+            await self._browser.input_submit_guess(self._strip_accents(word))
+            await self._browser.check_result(self.word_index)
         except InvalidWordError:
             print("Invalid word")
-            self._browser.clean_guess()
+            await self._browser.clean_guess()
 
-        self._update_result()
+        await self._update_result()
 
         self.guesses.append(word)
         self.word_index += 1
@@ -50,14 +49,10 @@ class Board:
                 f"Word should contain only alphabetical characters, not {word}"
             )
 
-    def _update_result(self) -> None:
-        row_result = self._browser.fetch_row_result(self.word_index)
-        word_result = self._parse_row_result(row_result)
+    async def _update_result(self) -> None:
+        word_result = await self._browser.fetch_row_result(self.word_index)
         self.results.append(word_result)
         self.result = self._check_win()
-
-    def _parse_row_result(self, row_result: str) -> list[str]:
-        return [c.split()[1] for c in row_result]
 
     def _check_win(self) -> int:
         if all(r == "right" for r in self.results[-1]):
