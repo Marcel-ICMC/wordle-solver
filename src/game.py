@@ -31,7 +31,6 @@ class Game:
             await self._browser.check_result(self.word_index)
         except InvalidWordError:
             print("Invalid word")
-            await self._browser.clean_guess()
 
         await self._update_result()
 

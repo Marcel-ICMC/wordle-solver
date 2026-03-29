@@ -54,10 +54,12 @@ class TermoAdapter:
     async def _error_notification(self) -> None:
         notify = self._page.locator("wc-notify #msg[style*='normal']")
         if await notify.is_visible():
+            await self._clean_guess()
+
             message = await self._page.locator("wc-notify").inner_text()
             raise InvalidWordError(f"Got invalid word error message: {message}")
 
-    async def clean_guess(self) -> None:
+    async def _clean_guess(self) -> None:
         for _ in range(5):
             await self._page.click("#kbd_backspace")
 
