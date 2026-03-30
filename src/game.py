@@ -1,5 +1,5 @@
+import string
 import unicodedata
-from typing import Any, Self
 
 from adapters import GameAdapter
 from exceptions import InvalidWordError, LengthWordError, NotAlphaWordError
@@ -9,54 +9,52 @@ class Game:
     def __init__(self, game_adapter: GameAdapter):
         self._game_adapter = game_adapter
         self.guesses: list[str] = []
-        self.results: list[list[str]] = []
+        self.remaining: set[str] = set(string.ascii_lowercase)
+        self.known_positions: list[str] = ["_", "_", "_", "_", "_"]
+        self.misplaced: dict[str, set[int]] = {}
+
         self.result: int = 0
         self.word_index: int = 0
 
-    def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(self, *args: list[Any]) -> None:
-        await self.close()
-        return None
-
-    async def close(self) -> None:
-        await self._game_adapter.close()
-
-    async def guess(self, word: str) -> int:
-        self._validates_word(word)
+    async def guess(self, guess: str) -> int:
+        self._validates_word(guess)
 
         try:
-            await self._game_adapter.input_submit_guess(self._strip_accents(word))
-            await self._game_adapter.check_result(self.word_index)
+            word_result = await self._game_adapter.input_submit_guess(
+                self._strip_accents(guess)
+            )
+            await self._update_game(guess, word_result)
         except InvalidWordError:
-            print("Invalid word")
+            print("Invalid guess")
 
-        await self._update_result()
-
-        self.guesses.append(word)
+        self.guesses.append(guess)
         self.word_index += 1
 
-        return self.result
+        return self._check_win(word_result)
 
-    def _validates_word(self, word: str) -> None:
-        if len(word) != 5:
-            raise LengthWordError(f"Word should be exactly 5 characters, not {word}")
+    def _validates_word(self, guess: str) -> None:
+        if len(guess) != 5:
+            raise LengthWordError(f"Word should be exactly 5 characters, not {guess}")
 
-        if not word.isalpha():
+        if not guess.isalpha():
             raise NotAlphaWordError(
-                f"Word should contain only alphabetical characters, not {word}"
+                f"Word should contain only alphabetical characters, not {guess}"
             )
 
-    async def _update_result(self) -> None:
-        word_result = await self._game_adapter.fetch_row_result(self.word_index)
-        self.results.append(word_result)
-        self.result = self._check_win()
+    async def _update_game(self, guess: str, word_result: list[str]) -> None:
+        for i in range(5):
+            self.remaining.discard(guess[i])
 
-    def _check_win(self) -> int:
-        if all(r == "right" for r in self.results[-1]):
+            if word_result[i] == "place":
+                self.misplaced.setdefault(guess[i], set()).add(i)
+
+            if word_result[i] == "right":
+                self.known_positions[i] = guess[i]
+
+    def _check_win(self, word_result: list[str]) -> int:
+        if all(r == "right" for r in word_result):
             return 1
-        if len(self.results) == 6:
+        if len(self.guesses) == 6:
             return -1
         return 0
 
