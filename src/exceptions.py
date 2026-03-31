@@ -8,3 +8,7 @@ class LengthWordError(Exception):
 
 class NotAlphaWordError(Exception):
     pass
+
+
+class GameNotFinishedError(Exception):
+    pass

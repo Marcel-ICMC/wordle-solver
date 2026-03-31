@@ -2,7 +2,7 @@ from typing import Any, Self
 
 from playwright.async_api import Browser, Page, Playwright, async_playwright
 
-from exceptions import InvalidWordError
+from exceptions import GameNotFinishedError, InvalidWordError
 
 
 class TermoAdapter:
@@ -38,7 +38,7 @@ class TermoAdapter:
 
     async def input_submit_guess(self, word: str) -> list[str]:
         for letter in word.lower():
-            await self._page.click(f"#kbd_{letter}")
+            await self._page.click(f"#kbd_{letter}", delay=50)
 
         await self._page.get_by_role("button", name="ENTER").click()
 
@@ -81,3 +81,10 @@ class TermoAdapter:
             )
             row_result.append(result.split()[1])
         return row_result
+
+    async def get_answer(self) -> str:
+        if self._word_index != 6:
+            raise GameNotFinishedError("Can't get answer without finishing the game")
+
+        notification_text = await self._page.locator("wc-notify").inner_text()
+        return notification_text.split()[-1]

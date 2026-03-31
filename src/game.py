@@ -2,7 +2,12 @@ import string
 import unicodedata
 
 from adapters import GameAdapter
-from exceptions import InvalidWordError, LengthWordError, NotAlphaWordError
+from exceptions import (
+    GameNotFinishedError,
+    InvalidWordError,
+    LengthWordError,
+    NotAlphaWordError,
+)
 
 
 class Game:
@@ -50,6 +55,12 @@ class Game:
 
             if word_result[i] == "right":
                 self.known_positions[i] = guess[i]
+
+    async def get_answer_after_loss(self) -> str:
+        if len(self.guesses) != 6:
+            raise GameNotFinishedError("Can't get answer without finishing the game")
+
+        return await self._game_adapter.get_answer()
 
     def _check_win(self, word_result: list[str]) -> int:
         if all(r == "right" for r in word_result):
