@@ -30,6 +30,7 @@ class Game:
             )
             await self._update_game(guess, word_result)
         except InvalidWordError:
+            # TODO: Deal with invalid guess
             print("Invalid guess")
 
         self.guesses.append(guess)

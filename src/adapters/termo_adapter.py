@@ -67,7 +67,6 @@ class TermoAdapter:
     async def _error_notification(self) -> None:
         notify = self._page.locator("wc-notify #msg[style*='normal']")
         if await notify.is_visible():
-            print("got notification, cleaning guess")
             await self._clean_guess()
 
             message = await self._page.locator("wc-notify").inner_text()
