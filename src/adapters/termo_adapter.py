@@ -54,13 +54,14 @@ class TermoAdapter:
         return row_result
 
     async def _wait_result(self) -> None:
-        await self._error_notification()
-
-        # Waits for answer animation to fisish
+        # Wait for either an error on screen
+        # Or the last letter on _word_index to flip it's result
         await self._page.wait_for_selector(
+            f"wc-notify #msg[style*='normal'], "
             f"#board0 [termo-row='{self._word_index}'] [termo-pos='4']:not(.empty)",
             timeout=10000,
         )
+        await self._error_notification()
 
     # Checks if an error shows up on screen
     async def _error_notification(self) -> None:
@@ -91,5 +92,8 @@ class TermoAdapter:
         if self._word_index != 6:
             raise GameNotFinishedError("Can't get answer without finishing the game")
 
+        await self._page.wait_for_selector(
+            "wc-notify #msg[style*='normal']", timeout=10000
+        )
         notification_text = await self._page.locator("wc-notify").inner_text()
         return notification_text.split()[-1]
