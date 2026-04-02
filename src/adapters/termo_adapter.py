@@ -1,4 +1,5 @@
-from typing import Any, Self
+from types import TracebackType
+from typing import Self
 
 from playwright.async_api import Browser, Page, Playwright, async_playwright
 
@@ -28,9 +29,13 @@ class TermoAdapter:
     async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, *args: list[Any]) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.close()
-        return None
 
     async def close(self) -> None:
         await self._browser.close()
