@@ -1,15 +1,16 @@
-import pytest
+import pytest_asyncio
 
 from adapters import TermoAdapter
 from game import Game
 
 
-@pytest.fixture
-async def pytest_configure(scope: str = "session") -> str:
-    # Dynamically generate a unique identifier for this test run
-    adapter = await TermoAdapter.create()
-    game = Game(game_adapter=adapter)
-    for _ in range(6):
-        await game.guess("termo")
+@pytest_asyncio.fixture(scope="session")
+async def answer() -> str:
+    async with await TermoAdapter.create(headless=True) as adapter:
+        game = Game(game_adapter=adapter)
+        for _ in range(6):
+            result = await game.guess("termo")
+            if result == 1:
+                return "termo"
 
-    return await game.get_answer_after_loss()
+        return await game.get_answer_after_loss()
