@@ -4,6 +4,7 @@ import pytest
 import pytest_asyncio
 
 from adapters import LocalAdapter, TermoAdapter
+from exceptions import InvalidWordError
 
 VALID_WORDS = ["carro", "bolas", "fundo", "pista", "milho", "torta"]
 
@@ -40,7 +41,7 @@ async def test_known_letter_returns_place(
     )
 
 
-async def test_wrong_letters_return_wrong(
+async def test_wrong_letters_returns_wrong(
     adapter: TermoAdapter, answer: str, request: pytest.FixtureRequest
 ) -> None:
     for word in VALID_WORDS:
@@ -63,3 +64,24 @@ async def test_local_and_termo_agree(adapter: TermoAdapter, answer: str) -> None
     local_result = await local.input_submit_guess(guess)
 
     assert termo_result == local_result
+
+
+async def test_invalid_word_raises_error(adapter: TermoAdapter) -> None:
+    with pytest.raises(InvalidWordError):
+        await adapter.input_submit_guess("zzzzz")
+
+
+async def test_invalid_word_does_not_increment_index(adapter: TermoAdapter) -> None:
+    try:
+        await adapter.input_submit_guess("zzzzz")
+    except InvalidWordError:
+        pass
+    assert adapter._word_index == 0
+
+
+async def test_invalid_word_allows_retry(adapter: TermoAdapter) -> None:
+    try:
+        await adapter.input_submit_guess("zzzzz")
+    except InvalidWordError:
+        pass
+    assert adapter._word_index == 0
