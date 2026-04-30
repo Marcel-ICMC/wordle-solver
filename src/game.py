@@ -23,20 +23,19 @@ class Game:
 
     async def guess(self, guess: str) -> int:
         self._validates_word(guess)
+        normalized_guess = self._strip_accents(guess).lower()
 
         try:
-            word_result = await self._game_adapter.input_submit_guess(
-                self._strip_accents(guess)
-            )
-            await self._update_game(guess, word_result)
+            word_result = await self._game_adapter.input_submit_guess(normalized_guess)
+            await self._update_game(normalized_guess, word_result)
         except InvalidWordError:
-            # TODO: Deal with invalid guess
-            print("Invalid guess")
+            return -2
 
-        self.guesses.append(guess)
+        self.guesses.append(normalized_guess)
         self.word_index += 1
 
-        return self._check_win(word_result)
+        self.result = self._check_win(word_result)
+        return self.result
 
     def _validates_word(self, guess: str) -> None:
         if len(guess) != 5:

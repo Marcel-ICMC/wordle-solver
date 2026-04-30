@@ -20,6 +20,15 @@ async def test_correct_guess_returns_win() -> None:
 
 
 @pytest.mark.asyncio
+async def test_correct_guess_updates_game_result() -> None:
+    game = Game(game_adapter=LocalAdapter(answer="carro"))
+
+    await game.guess("carro")
+
+    assert game.result == 1
+
+
+@pytest.mark.asyncio
 async def test_wrong_guess_returns_ongoing() -> None:
     game = Game(game_adapter=LocalAdapter(answer="carro"))
     result = await game.guess("bolas")
@@ -54,3 +63,12 @@ async def test_guess_is_recorded() -> None:
     game = Game(game_adapter=LocalAdapter(answer="carro"))
     await game.guess("bolas")
     assert "bolas" in game.guesses
+
+
+@pytest.mark.asyncio
+async def test_uppercase_guess_updates_remaining_letters() -> None:
+    game = Game(game_adapter=LocalAdapter(answer="carro"))
+
+    await game.guess("SALTO")
+
+    assert not {"s", "a", "l", "t", "o"} & game.remaining
