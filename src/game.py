@@ -4,7 +4,6 @@ import unicodedata
 from adapters import GameAdapter
 from exceptions import (
     GameNotFinishedError,
-    InvalidWordError,
     LengthWordError,
     NotAlphaWordError,
 )
@@ -25,11 +24,8 @@ class Game:
         self._validates_word(guess)
         normalized_guess = self._strip_accents(guess).lower()
 
-        try:
-            word_result = await self._game_adapter.input_submit_guess(normalized_guess)
-            await self._update_game(normalized_guess, word_result)
-        except InvalidWordError:
-            return -2
+        word_result = await self._game_adapter.input_submit_guess(normalized_guess)
+        await self._update_game(normalized_guess, word_result)
 
         self.guesses.append(normalized_guess)
         self.word_index += 1

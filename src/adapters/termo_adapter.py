@@ -70,7 +70,9 @@ class TermoAdapter:
             await self._clean_guess()
 
             message = await self._page.locator("wc-notify").inner_text()
-            raise InvalidWordError(f"Got invalid word error message: {message}")
+            raise InvalidWordError(
+                f"Got invalid word error message: {message}, possibly this word doesn't exist or isn't in the word list"
+            )
 
     async def _clean_guess(self) -> None:
         for _ in range(5):
